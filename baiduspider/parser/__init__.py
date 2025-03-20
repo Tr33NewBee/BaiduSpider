@@ -45,6 +45,8 @@ class Parser(BaseSpider):
             if found:
                 break
             idx_ += 1
+        if ele is None:
+            return {"results": [], "pages": 0, "total": 0,"error":"ele not found"}
         num = int(
             str(ele.text).strip("百度为您找到相关结果").strip("约").strip("个").replace(",", "")
         )
