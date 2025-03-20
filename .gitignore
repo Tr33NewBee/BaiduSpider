@@ -21,3 +21,4 @@ exp.*
 test.*
 t.html
 gen.json
+/tests
