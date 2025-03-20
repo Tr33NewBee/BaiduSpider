@@ -10,6 +10,7 @@ import datetime
 import hashlib
 import random
 import time as time_lib
+import traceback
 from typing import Dict, Tuple, Union
 from urllib.parse import quote
 
@@ -106,7 +107,7 @@ class BaiduSpider(BaseSpider):
     )`: 百度百科搜索
     """
 
-    def __init__(self, cookie: str = None) -> None:
+    def __init__(self, cookie: str = None,debug_file=None) -> None:
         """初始化BaiduSpider.
 
         - 设置Cookie：
@@ -127,6 +128,7 @@ class BaiduSpider(BaseSpider):
             cookie (Union[str, None], optional): 浏览器抓包得到的cookie. Defaults to None.
         """
         super().__init__()
+        self._debug_file = debug_file
         # 爬虫名称（不是请求的，只是用来标识）
         self.spider_name = "BaiduSpider"
         # 解析Cookie
@@ -157,6 +159,17 @@ class BaiduSpider(BaseSpider):
             "news": 10,
             "jingyan": 10,
         }
+
+    def parse_news_(self,content):
+        """
+        解析搜索的新闻内容
+        Args:
+            content:
+
+        Returns:
+
+        """
+        pass
 
     def search_web(
         self,
@@ -439,9 +452,14 @@ class BaiduSpider(BaseSpider):
                     cookie = _[0] + "__yjs_duid=1_" + str(___.hexdigest()) + __
             self.headers["Cookie"] = cookie
             content = self._get_response(url, proxies)
+            if content is not None and  self._debug_file is not None:
+                with open(self._debug_file,"w",encoding="utf-8") as fp:
+                    fp.write(content)
+                print("Debugger file at: "+self._debug_file)
             results = self.parser.parse_web(content, exclude=exclude)
         except Exception as err:
             error = err
+            traceback.print_exc()
         finally:
             self._handle_error(error, "BaiduSpider", "parse-web")
         pages = self._calc_pages(results["total"], self.RESULTS_PER_PAGE["web"])
