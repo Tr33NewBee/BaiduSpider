@@ -4,5 +4,4 @@ PyQt5==5.15.11
 PyQt5_sip==12.17.0
 Requests==2.32.3
 setuptools==58.0.4
-setuptools==68.2.0
 ujson==5.10.0
