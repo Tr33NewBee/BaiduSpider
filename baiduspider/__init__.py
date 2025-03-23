@@ -455,7 +455,7 @@ class BaiduSpider(BaseSpider):
             if content is not None and  self._debug_file is not None:
                 with open(self._debug_file,"w",encoding="utf-8") as fp:
                     fp.write(content)
-                print("Debugger file at: "+self._debug_file)
+                # print("Debugger file at: "+self._debug_file)
             results = self.parser.parse_web(content, exclude=exclude)
         except Exception as err:
             error = err
