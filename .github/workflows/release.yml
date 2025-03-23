@@ -63,7 +63,8 @@ jobs:
 #          path: dist/MyApp.dmg
 
   release:
-    needs: [build-windows, build-macos]
+#    needs: [build-windows, build-macos]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
