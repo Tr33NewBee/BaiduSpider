@@ -123,6 +123,9 @@ class BaiduInfoCrawler(object):
         return line.replace("<em>","").replace("</em>","")
 
 
+    def __delete_file_exist(self,p):
+        if os.path.isfile(p):
+            os.remove(p)
     def search_news(self, keyword: str, cookie=None,debug=False)->list[Optional[dict]]:
         if cookie == None:
             return []
@@ -137,12 +140,13 @@ class BaiduInfoCrawler(object):
         spider = BaiduSpider(cookie=cookie, debug_file=debug_file)
         # 搜索网页
         if not  debug:
+            self.__delete_file_exist(debug_file)
             spider.search_web(query=keyword, time=query_time, pn=page_n)
             if not os.path.isfile(debug_file):
                 raise Exception("Can't scrawl content")
 
         # time.sleep(random.uniform(2.5,5.6))
-        soup = BeautifulSoup(open(debug_file, "r").read(), "html.parser")
+        soup = BeautifulSoup(open(debug_file, "r",encoding="utf-8").read(), "html.parser")
         news = soup.find_all(
             text=lambda t: isinstance(t, Comment))  # "h3",class_ ="c-title t t tts-title")#"cr-content new-pmd")
         result = []
