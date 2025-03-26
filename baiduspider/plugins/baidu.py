@@ -1,6 +1,5 @@
 import json
 import os.path
-import random
 import time
 import traceback
 from typing import Optional
