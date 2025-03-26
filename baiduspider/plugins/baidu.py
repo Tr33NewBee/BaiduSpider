@@ -153,7 +153,7 @@ class BaiduInfoCrawler(object):
         for new in news:
             if not new.startswith("s-data"): continue
             try:
-                # print(new)
+                print(new)
                 s  = new.split("s-data:")[1].replace("\\-","\\\-").replace("\n","").replace("\t","")
                 content = json.loads(s)
                 # content = content.replace("\\-","\\\-")
