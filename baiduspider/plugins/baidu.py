@@ -169,7 +169,8 @@ class BaiduInfoCrawler(object):
                 title = self.__remove_html_tag(item['subTitle'])
                 title_url = self.__remove_html_tag(item['subTitleUrl'])
                 source = {
-                    "source":self.__remove_html_tag(item['siteName'])
+                    "sitename":self.__remove_html_tag(item['siteName']),
+                    "url":ttsInfo['titleUrl']
                 }
                 contentText = self.__remove_html_tag(item['subAbs'])
                 newTimeFactorStr = self.__remove_html_tag(item['postTimeNew'])
