@@ -46,11 +46,14 @@ class MainWindow(QMainWindow):
         # 操作按钮组
         control_layout = QVBoxLayout()
         self.btn_start = QPushButton("开始")
+        self.btn_clear = QPushButton("清空")
         self.btn_stop = QPushButton("停止")
         self.btn_export = QPushButton("导出结果")
+
         control_layout.addWidget(self.btn_start)
         control_layout.addWidget(self.btn_stop)
         control_layout.addWidget(self.btn_export)
+        control_layout.addWidget(self.btn_clear)
 
         # 将布局添加到顶部区域
         top_layout.addLayout(import_layout)
@@ -90,6 +93,7 @@ class MainWindow(QMainWindow):
         self.btn_start.clicked.connect(self.start_process)
         self.btn_stop.clicked.connect(self.stop_process)
         self.btn_export.clicked.connect(self.export_result)
+        self.btn_clear.clicked.connect(self.clear_result)
 
         # 初始化定时器
         self.timer = QTimer(self)
@@ -103,6 +107,11 @@ class MainWindow(QMainWindow):
         self.cookie = None
         #
         self.result = []
+
+
+    def clear_result(self):
+        self.search_sources.clear()
+        self.crawled_items.clear()
 
 
     def import_template(self):
@@ -142,7 +151,6 @@ class MainWindow(QMainWindow):
                         for l in line.split(" "):
                             yield  l
                     if "/" not in line or "/" not in line: yield line
-
                     # 英文输入发
                     a = line.split("/")
                     b = line.split("/")
@@ -152,13 +160,12 @@ class MainWindow(QMainWindow):
                         yield l
                 # print("sheet rows ",sheet.max_row)
                 for row in sheet.iter_rows(values_only=True,min_row=1):
-                    print(row)
+                    # print(row)
                     tag,company,keyword= row
                     if tag == "数据类型":continue
                     if keyword is None or tag is None or company is None:continue
                     # if tag not in self.search_sources:
                     #     self.search_sources[tag] = []
-
                     # 保存格式就是tag + company格式
                     print("==>  line: ", row)
                     for newkeyword in process_multi(keyword):
