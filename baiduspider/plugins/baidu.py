@@ -94,7 +94,15 @@ class BaiduInfoCrawler(object):
 
 
 
-    def parse_date(self,input_str):
+    def parse_date(self,input_str, tz="UTC"):
+        try:
+            int(input_str)
+            dt = datetime.fromtimestamp(int(input_str), tz=ZoneInfo(tz))
+            return dt.date()
+
+        except:
+            pass
+
         # 尝试解析为绝对日期（格式：YYYY年MM月DD日）
         input_str = input_str.strip()
         try:

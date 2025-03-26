@@ -5,6 +5,7 @@ from PyQt5.QtCore import QTimer, QDateTime, Qt, QThread
 from openpyxl.reader.excel import load_workbook
 from baiduspider.plugins.baidu import BaiduInfoCrawler
 from ui.baidu_crawler import QtBaiduWorker
+import pandas as pd
 
 
 class MainWindow(QMainWindow):
@@ -112,6 +113,8 @@ class MainWindow(QMainWindow):
     def clear_result(self):
         self.search_sources.clear()
         self.crawled_items.clear()
+        self.log_view.clear()
+        self.log("请重新导入搜索模板...")
 
 
     def import_template(self):
@@ -205,8 +208,6 @@ class MainWindow(QMainWindow):
             else:
                 self.log(f"加载更新cookie完成")
 
-
-
     def start_process(self):
         if  self.need_update_cookie:
             self.log("请更新cookie才能继续更新数据")
@@ -254,7 +255,7 @@ class MainWindow(QMainWindow):
 
             # self.search_all_keywords =keyword
 
-            #todo 需要更新这部分为异步操作，否则就是主线程在运行。效率态度
+            #todo 需要更新这部分为异步操作，否则就是主线程在运行。效率太慢
             self.crawler  = BaiduInfoCrawler()
             if len(self.search_list) ==0:
                 self.log("没有可用的关键词搜索")
@@ -312,9 +313,28 @@ class MainWindow(QMainWindow):
                 source_url = source['url']
                 last_modified_time = news['last_modified']
                 newTimeFactorStr = news['newTimeFactorStr']
+                contentText = news['contentText']
+                # news['search_keyword'] = newTimeFactorStr
 
-                info =f"提取关键词成功 关键词: {item} 文章标题: {title} 文章来源: {sitename} 文章链接: {source_url} 发布时间: {newTimeFactorStr} 更新时间: {last_modified_time}"
-                print(info)
+                news['export_data'] = {
+                    "搜索关键词":item,
+                    "文章标题":title,
+                    "文章来源":sitename,
+                    "文章链接":source_url,
+                    "发布时间":newTimeFactorStr,
+                    "文章摘要":news['contentText']
+                    # "更新时间":last_modified_time,
+
+
+                }
+
+                fmt_date = self.crawler.parse_date(newTimeFactorStr)
+                print(f"解释时间格式: {newTimeFactorStr} => ",fmt_date)
+                if fmt_date is not None:
+                    news['export_data']['发布时间'] = fmt_date.strftime("%Y年%m月%d日")
+
+                info =f"提取关键词成功 关键词: {item} 文章标题: {title} 文章来源: {sitename} 文章摘要:{contentText}  文章链接: {source_url} 发布时间: {newTimeFactorStr} 更新时间: {last_modified_time}"
+                # print(info)
                 self.log(info)
 
             QTimer.singleShot(50, self.simulate_processing)  # 每50ms增加1%
@@ -340,10 +360,17 @@ class MainWindow(QMainWindow):
     def export_result(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "导出结果", "", "Excel文件 (*.xlsx)")
         if file_path:
+            header= []
+            export_datas =[]
+            for item in self.result:
+                export_data = item['export_data']
+                if len(header) == 0:
+                    header.extend(list(export_data.keys()))
+                export_datas.append(export_data)
+
+            df = pd.DataFrame(export_datas,columns=header)
+            df.to_excel(file_path,index=False,engine="openpyxl")
             self.log(f"结果已导出到: {file_path}")
-            heaeder= ["相关公司/机构","信息类型","媒体","来源","标题","链接",]
-
-
 
     def log(self, message):
         timestamp = QDateTime.currentDateTime().toString("yyyy-MM-dd hh:mm:ss")
