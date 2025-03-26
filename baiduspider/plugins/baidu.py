@@ -62,13 +62,16 @@ class BaiduInfoCrawler(object):
         return formatted_date
 
     def is_in_current_month(self,timestamp, tz="UTC") -> bool:
-        # 转换为指定时区的时间
 
+        # 这里过滤一下时间
+        if isinstance(timestamp,str) and timestamp == "0":return False
+        # 转换为指定时区的时间
+        current = datetime.now(tz=ZoneInfo(tz))
         try:
             dt = datetime.fromtimestamp(int(timestamp), tz=ZoneInfo(tz))
 
             # 获取当前时区时间
-            current = datetime.now(tz=ZoneInfo(tz))
+
             # print("parse last_modified year: "+str(dt.year) +" dt.month: "+str(dt.month) +"  current.year:"+str(current.year) +" current_month: "+str(current.month))
             result = (dt.year, dt.month) == (current.year, current.month)
             return result
@@ -79,11 +82,15 @@ class BaiduInfoCrawler(object):
                 target_date =  self.parse_date(timestamp)
                 if target_date is None:
                     print(f"[Error]: 解析 timestamp {timestamp} 错误")
+
+                        # return (target_date.year == current_year) and (target_date.month == current_month)
                     return  False
                 # print("监测时间是否正确 target_date= ",target_date ," today: ",today)
                 return (target_date.year == current_year) and (target_date.month == current_month)
             except Exception as e:
-                print("解析时间错误 "+timestamp + " Exception: "+e)
+
+
+                print("解析时间错误 " + timestamp + " Exception: " + e)
                 return False
 
 
@@ -104,6 +111,23 @@ class BaiduInfoCrawler(object):
         if match:
             days_ago = int(match.group(1))
             return date.today() - timedelta(days=days_ago)
+        match = re.match(
+            r'^(?:(?P<special>前天|昨天)|(?P<days_ago>\d+)天前)(?P<time>\d{1,2}:\d{2})?$',
+            input_str
+        )
+        if match:
+            special = match.group("special")
+            days_ago_str = match.group("days_ago")
+            if special:
+                days_ago = 2 if special == "前天" else 1  # 前天=2天前，昨天=1天前
+            else:
+                days_ago = int(days_ago_str)
+            # 获取目标日期
+
+            target_date = date.today() - timedelta(days=days_ago)
+            return target_date
+            # today = date.today()
+            # current_year, current_month = today.year, today.month
 
         # 可根据需要扩展其他格式，例如X天后
         # 如果无法解析，抛出异常
@@ -126,6 +150,52 @@ class BaiduInfoCrawler(object):
     def __delete_file_exist(self,p):
         if os.path.isfile(p):
             os.remove(p)
+
+    def __parse_render_list(self,render_list:list):
+        """
+        解析出render_list的内容
+        Args:
+            render_list:
+
+        Returns: list
+
+        """
+        result = []
+        for item in render_list:
+            # print(item)
+            postTimeNew = item.get("postTimeNew","0")
+            if self.is_in_current_month(postTimeNew):
+                # print("current ",item)
+                ttsInfo = item['ttsInfo']
+                title = self.__remove_html_tag(item['subTitle'])
+                title_url = self.__remove_html_tag(item['subTitleUrl'])
+                source = self.__remove_html_tag(item['siteName'])
+                contentText = self.__remove_html_tag(item['subAbs'])
+                newTimeFactorStr = self.__remove_html_tag(item['postTimeNew'])
+                first_info_ttsSourceType = ttsInfo['titleUrl']
+
+                # first_info_titleUrl 在ttsInfo的ext那
+                ext= json.loads( ttsInfo['ext'])
+
+                first_info_titleUrl = ext['title']
+
+                st = item['postTimeNew']
+                last_modified =0 # 这里我们不知道，先不管。
+
+                result.append({
+                    "title": title,
+                    "title_url": title_url,
+                    "source": source,
+                    "contentText": contentText,
+                    "newTimeFactorStr": newTimeFactorStr,
+                    "first_info_ttsSourceType": first_info_ttsSourceType,
+                    "first_info_titleUrl": first_info_titleUrl,
+                    "last_modified": st,
+                    "last_modified_timestamp": str(last_modified),
+                })
+        return result
+
+
     def search_news(self, keyword: str, cookie=None,debug=False)->list[Optional[dict]]:
         if cookie == None:
             return []
@@ -146,20 +216,30 @@ class BaiduInfoCrawler(object):
                 raise Exception("Can't scrawl content")
 
         # time.sleep(random.uniform(2.5,5.6))
-        soup = BeautifulSoup(open(debug_file, "r",encoding="utf-8").read(), "html.parser")
+        with open(debug_file, "r",encoding="utf-8") as fp:
+            soup = BeautifulSoup(fp.read(), "html.parser")
         news = soup.find_all(
-            text=lambda t: isinstance(t, Comment))  # "h3",class_ ="c-title t t tts-title")#"cr-content new-pmd")
+            string=lambda t: isinstance(t, Comment))  # "h3",class_ ="c-title t t tts-title")#"cr-content new-pmd")
         result = []
         for new in news:
             if not new.startswith("s-data"): continue
             try:
-                print(new)
+
                 s  = new.split("s-data:")[1].replace("\\-","\\\-").replace("\n","").replace("\t","")
                 content = json.loads(s)
                 # content = content.replace("\\-","\\\-")
                 tplData = content.get("tplData", {})
                 last_modified = tplData.get('LastModTime', 0)
+                renderList = content.get("renderList",[])
+                # print(renderList)
+                if len(renderList) >0:
+                    # 解析一下renderList的内容，因为其他的不一定有
+                    parse_render_list = self.__parse_render_list(renderList)
+                    result.extend(parse_render_list)
+
+
                 if str(last_modified) == "0": continue
+                # 下面的tlData的没结果
 
                 title = self.__remove_html_tag(content['title'])
                 title_url = content['titleUrl']
